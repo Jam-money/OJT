@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -94,357 +94,6 @@ function hhmm(iso: string | null): string {
 
 const EMPTY_PROFILE: Profile = { full_name: "", student_id: "", company: "" };
 
-// ── Civil Service Form No. 48 Print Modal ─────────────────────────────────────
-function DtrPrintView({
-  rows,
-  profile,
-  month,
-  year,
-  onClose,
-}: {
-  rows: DtrRow[];
-  profile: Profile;
-  month?: number;
-  year?: number;
-  onClose: () => void;
-}) {
-  const now = new Date();
-  const targetMonth = month ?? now.getMonth();
-  const targetYear = year ?? now.getFullYear();
-
-  const byDay: Record<number, DtrRow> = {};
-  for (const r of rows) {
-    const d = new Date(r.entry_date + "T00:00:00");
-    if (d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
-      byDay[d.getDate()] = r;
-    }
-  }
-
-  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-  const isWeekend = (day: number) => {
-    const dow = new Date(targetYear, targetMonth, day).getDay();
-    return dow === 0 || dow === 6;
-  };
-
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const rows31: string[] = [];
-    for (let day = 1; day <= 31; day++) {
-      const row = day <= daysInMonth ? byDay[day] : null;
-      const weekend = day <= daysInMonth && isWeekend(day);
-      const color = weekend ? "#cc0000" : "#000000";
-      const dayLabel = day <= daysInMonth ? String(day) : "";
-
-      const amIn  = row ? hhmm(row.check_in)  : "";
-      const amOut = row ? hhmm(row.break_out) : "";
-      const pmIn  = row ? hhmm(row.break_in)  : "";
-      const pmOut = row ? hhmm(row.check_out) : "";
-
-      rows31.push(`
-        <tr>
-          <td style="color:${color};text-align:center;font-size:9px;padding:0 2px;width:18px;">${dayLabel}</td>
-          <td style="font-size:8px;text-align:center;padding:0 1px;">${amIn}</td>
-          <td style="font-size:8px;text-align:center;padding:0 1px;">${amOut}</td>
-          <td style="font-size:8px;text-align:center;padding:0 1px;">${pmIn}</td>
-          <td style="font-size:8px;text-align:center;padding:0 1px;">${pmOut}</td>
-        </tr>
-      `);
-    }
-
-    const monthLabel = `${MONTHS[targetMonth]} ${targetYear}`;
-
-    const copy = (monthDisplay: string) => `
-      <div class="copy">
-        <div class="form-no">CIVIL SERVICE FORM NO.48</div>
-        <div class="title-wrap"><h1>DAILY TIME RECORD</h1></div>
-
-        <div class="name-block">
-          <div class="name-value">${profile.full_name || ""}</div>
-        </div>
-
-        <div class="month-line">For the month of: &nbsp;<strong>${monthDisplay}</strong></div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th rowspan="2" style="width:18px;">Day</th>
-                <th colspan="2">AM</th>
-                <th colspan="2">PM</th>
-              </tr>
-              <tr>
-                <th>Time In</th>
-                <th>Time Out</th>
-                <th>Time In</th>
-                <th>Time Out</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows31.join("")}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="cert">
-          I CERTIFY on my honor that above is a true and correct<br/>
-          report of the hours of work performed, record of which was made<br/>
-          daily at the time of arrival at and departure from office.
-        </div>
-
-        <div class="trainee-sig">
-          <div class="sig-name-above">${profile.full_name || ""}</div>
-          <div class="sig-line"></div>
-        </div>
-
-        <div class="verified">Verified as to the prescribed office hours.</div>
-
-        <div class="supervisor-sig">
-          <div class="sup-name">JOSE B. TUASON JR.</div>
-          <div class="sig-line"></div>
-          <div class="sup-title">CHIEF ADMINISTRATIVE OFFICER</div>
-        </div>
-      </div>
-    `;
-
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8"/>
-  <title>DTR - ${monthLabel}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    @page { size: A4 portrait; margin: 8mm 6mm; }
-    html, body {
-      font-family: Arial, sans-serif;
-      font-size: 10px;
-      color: #000;
-    }
-
-    .page {
-      display: flex;
-      flex-direction: row;
-      width: 100%;
-    }
-
-    .copy {
-      width: 50%;
-      padding: 3mm 4mm;
-      border-right: 1.5px dashed #aaa;
-    }
-    .copy:last-child { border-right: none; }
-
-    /* Form number */
-    .form-no { font-size: 8px; margin-bottom: 2px; }
-
-    /* Title */
-    .title-wrap {
-      border-top: 2.5px double #000;
-      border-bottom: 2.5px double #000;
-      padding: 3px 0;
-      margin-bottom: 4px;
-    }
-    h1 {
-      font-size: 15px;
-      font-weight: 900;
-      text-align: center;
-      letter-spacing: 2px;
-    }
-
-    /* Name */
-    .name-block { text-align: center; margin-bottom: 3px; }
-    .name-value {
-      display: inline-block;
-      min-width: 170px;
-      font-size: 12px;
-      font-weight: bold;
-      border-bottom: 1px solid #000;
-      padding: 0 8px;
-      text-align: center;
-    }
-
-    /* Month line */
-    .month-line { font-size: 9.5px; margin-bottom: 3px; }
-    .month-line strong { font-weight: bold; }
-
-    /* Table */
-    .table-wrap { margin-bottom: 0; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    table, th, td { border: 1px solid #000; }
-    th {
-      font-size: 8.5px;
-      text-align: center;
-      padding: 2px 1px;
-      font-weight: bold;
-    }
-    td {
-      font-size: 8px;
-      text-align: center;
-      padding: 0 1px;
-      height: 6.8mm;
-      vertical-align: middle;
-    }
-
-    /* Certification */
-    .cert {
-      font-size: 9px;
-      margin-top: 8px;
-      line-height: 1.7;
-      text-align: center;
-    }
-
-    /* Trainee signature block */
-    .trainee-sig {
-      margin-top: 10px;
-      text-align: center;
-    }
-    .trainee-sig .sig-name-above {
-      font-size: 11px;
-      font-weight: bold;
-      margin-bottom: 2px;
-    }
-    .trainee-sig .sig-line {
-      border-top: 1.5px solid #000;
-      width: 80%;
-      margin: 0 auto;
-    }
-
-    /* Verified */
-    .verified { font-size: 9px; margin-top: 7px; margin-bottom: 7px; }
-
-    /* Supervisor block */
-    .supervisor-sig { text-align: center; }
-    .supervisor-sig .sup-name {
-      font-size: 11px;
-      font-weight: bold;
-      margin-bottom: 2px;
-    }
-    .supervisor-sig .sig-line {
-      border-top: 1.5px solid #000;
-      width: 80%;
-      margin: 0 auto 2px;
-    }
-    .supervisor-sig .sup-title {
-      font-size: 10px;
-      font-weight: bold;
-    }
-
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-    ${copy(monthLabel)}
-    ${copy(monthLabel)}
-  </div>
-</body>
-</html>`;
-
-    iframe.srcdoc = html;
-
-    const handleLoad = () => {
-      iframe.contentWindow?.print();
-    };
-    iframe.addEventListener("load", handleLoad);
-    return () => iframe.removeEventListener("load", handleLoad);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.55)",
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-      onClick={onClose}
-    >
-      {/* Hidden iframe that triggers print */}
-      <iframe
-        ref={iframeRef}
-        style={{ width: 0, height: 0, border: "none", position: "absolute" }}
-        title="DTR Print"
-      />
-
-      {/* Modal card */}
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 12,
-          padding: "28px 32px",
-          maxWidth: 380,
-          width: "100%",
-          textAlign: "center",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.35)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ fontSize: 40, marginBottom: 10 }}>🖨️</div>
-        <h3 style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
-          Civil Service Form No. 48
-        </h3>
-        <p style={{ fontSize: 13, color: "#64748b", marginBottom: 6 }}>
-          Daily Time Record for{" "}
-          <strong>
-            {MONTHS[month ?? new Date().getMonth()]} {year ?? new Date().getFullYear()}
-          </strong>
-        </p>
-        {profile.full_name && (
-          <p style={{ fontSize: 12, color: "#475569", marginBottom: 14 }}>
-            {profile.full_name}
-            {profile.student_id ? ` · ${profile.student_id}` : ""}
-          </p>
-        )}
-        <p style={{ fontSize: 11, color: "#94a3b8", marginBottom: 20 }}>
-          Your print dialog should have opened automatically.
-          <br />If not, click Print below.
-        </p>
-        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <button
-            onClick={() => iframeRef.current?.contentWindow?.print()}
-            style={{
-              background: "#0f172a",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 22px",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: 13,
-            }}
-          >
-            Print
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              background: "#f1f5f9",
-              color: "#334155",
-              border: "none",
-              borderRadius: 8,
-              padding: "9px 22px",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: 13,
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 function DashboardPage() {
   const navigate = useNavigate();
@@ -456,7 +105,6 @@ function DashboardPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
-  const [showPrint, setShowPrint] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -587,6 +235,399 @@ function DashboardPage() {
     const a = document.createElement("a");
     a.href = url;
     a.download = `dtr-${todayKey()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // ── DTR HTML builder (shared by print & download) ──────────────────────────
+  const buildDtrHtml = () => {
+    const target = new Date();
+    const targetMonth = target.getMonth();
+    const targetYear = target.getFullYear();
+
+    const byDay: Record<number, DtrRow> = {};
+    for (const r of rows) {
+      const d = new Date(r.entry_date + "T00:00:00");
+      if (d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
+        byDay[d.getDate()] = r;
+      }
+    }
+
+    const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const isWeekend = (day: number) => {
+      const dow = new Date(targetYear, targetMonth, day).getDay();
+      return dow === 0 || dow === 6;
+    };
+
+    const rows31: string[] = [];
+    for (let day = 1; day <= 31; day++) {
+      const row = day <= daysInMonth ? byDay[day] : null;
+      const weekend = day <= daysInMonth && isWeekend(day);
+      const color = weekend ? "#cc0000" : "#000000";
+      const amIn  = row ? hhmm(row.check_in)  : "";
+      const amOut = row ? hhmm(row.break_out) : "";
+      const pmIn  = row ? hhmm(row.break_in)  : "";
+      const pmOut = row ? hhmm(row.check_out) : "";
+      rows31.push(`
+        <tr>
+          <td style="color:${color};text-align:center;font-size:8.5px;padding:0 2px;">${day <= daysInMonth ? day : ""}</td>
+          <td style="font-size:7.5px;text-align:center;padding:0 1px;">${amIn}</td>
+          <td style="font-size:7.5px;text-align:center;padding:0 1px;">${amOut}</td>
+          <td style="font-size:7.5px;text-align:center;padding:0 1px;">${pmIn}</td>
+          <td style="font-size:7.5px;text-align:center;padding:0 1px;">${pmOut}</td>
+        </tr>
+      `);
+    }
+
+    const monthLabel = `${MONTHS[targetMonth]} ${targetYear}`;
+
+    const copy = `
+      <div class="copy">
+        <div class="title-wrap"><h1>DAILY TIME RECORD</h1></div>
+        <div class="name-block">
+          <div class="name-value">${profile.full_name || ""}</div>
+        </div>
+        <div class="month-line">For the month of: &nbsp;<strong>${monthLabel}</strong></div>
+        <table>
+          <thead>
+            <tr>
+              <th rowspan="2" style="width:20px;">Day</th>
+              <th colspan="2">AM</th>
+              <th colspan="2">PM</th>
+            </tr>
+            <tr>
+              <th>Time In</th><th>Time Out</th>
+              <th>Time In</th><th>Time Out</th>
+            </tr>
+          </thead>
+          <tbody>${rows31.join("")}</tbody>
+        </table>
+        <div class="cert">
+          I CERTIFY on my honor that above is a true and correct<br/>
+          report of the hours of work performed, record of which was made<br/>
+          daily at the time of arrival at and departure from office.
+        </div>
+        <div class="trainee-sig">
+          <div class="sig-line"></div>
+          <div class="sig-name">${profile.full_name || ""}</div>
+        </div>
+        <div class="verified">Verified as to the prescribed office hours.</div>
+        <div class="supervisor-sig">
+          <div class="sig-name">JOSE B. TUASON JR.</div>
+          <div class="sig-line"></div>
+          <div class="sig-title">CHIEF ADMINISTRATIVE OFFICER</div>
+        </div>
+      </div>
+    `;
+
+    const styles = `
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      @page { size: A4 portrait; margin: 10mm 8mm; }
+      html, body { height: 100%; }
+      body { font-family: Arial, sans-serif; font-size: 10px; color: #000; height: 100%; }
+      .page { display: flex; flex-direction: row; width: 100%; min-height: 257mm; }
+      .copy { width: 50%; padding: 4mm 6mm; border-right: 1px dashed #bbb; display: flex; flex-direction: column; }
+      .copy:last-child { border-right: none; }
+      .title-wrap { border-top: 2.5px double #000; border-bottom: 2.5px double #000; padding: 3px 0; margin-bottom: 6px; }
+      h1 { font-size: 15px; font-weight: 900; text-align: center; letter-spacing: 1.5px; }
+      .name-block { text-align: center; margin-bottom: 1px; }
+      .name-value { font-size: 12px; font-weight: bold; border-bottom: 1px solid #000; display: inline-block; min-width: 160px; padding: 0 8px; text-align: center; }
+      .name-label { font-size: 8px; text-align: center; color: #c00; margin-bottom: 5px; }
+      .month-line { font-size: 9px; margin-bottom: 5px; }
+      .month-line strong { font-weight: bold; }
+      table { width: 100%; border-collapse: collapse; }
+      table, th, td { border: 1px solid #000; }
+      th { font-size: 8px; text-align: center; padding: 2px 0; font-weight: bold; }
+      td { height: 13px; }
+      .cert { font-size: 8px; margin-top: 10px; line-height: 1.6; text-align: center; }
+      .trainee-sig { margin-top: 10px; text-align: center; }
+      .trainee-sig .sig-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 2px; }
+      .trainee-sig .sig-name { font-size: 10px; font-weight: bold; }
+      .verified { font-size: 7.5px; margin-top: 6px; margin-bottom: 8px; }
+      .supervisor-sig { text-align: center; }
+      .supervisor-sig .sig-name { font-size: 10px; font-weight: bold; margin-bottom: 1px; }
+      .supervisor-sig .sig-line { border-top: 2.5px solid #000; width: 80%; margin: 0 auto 2px; }
+      .supervisor-sig .sig-title { font-size: 9px; font-weight: bold; }
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    `;
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>DTR – ${monthLabel}</title>
+  <style>${styles}</style>
+</head>
+<body>
+  <div class="page">${copy}${copy}</div>
+</body>
+</html>`;
+
+    return { html, monthLabel, targetMonth, targetYear };
+  };
+
+  const printDtr = () => {
+    const { html } = buildDtrHtml();
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "width:0;height:0;border:none;position:absolute;left:-9999px;top:-9999px;";
+    document.body.appendChild(iframe);
+    iframe.srcdoc = html;
+    iframe.onload = () => {
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 2000);
+    };
+  };
+
+  const downloadWordDtr = () => {
+    const target = new Date();
+    const targetMonth = target.getMonth();
+    const targetYear = target.getFullYear();
+    const monthLabel = `${MONTHS[targetMonth]} ${targetYear}`;
+    const fullName = profile.full_name || "";
+
+    const byDay: Record<number, DtrRow> = {};
+    for (const r of rows) {
+      const d = new Date(r.entry_date + "T00:00:00");
+      if (d.getMonth() === targetMonth && d.getFullYear() === targetYear) {
+        byDay[d.getDate()] = r;
+      }
+    }
+
+    const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+    const isWeekend = (day: number) => {
+      const dow = new Date(targetYear, targetMonth, day).getDay();
+      return dow === 0 || dow === 6;
+    };
+
+    const cell = (txt: string, extra = "") =>
+      `<td style="border:1px solid #000;font-size:7.5pt;text-align:center;vertical-align:middle;padding:1px 2px;height:14px;${extra}">${txt}</td>`;
+
+    const hdrCell = (txt: string, extra = "") =>
+      `<td style="border:1px solid #000;font-size:7.5pt;font-weight:bold;text-align:center;vertical-align:middle;padding:2px;${extra}">${txt}</td>`;
+
+    let rows31 = "";
+    for (let day = 1; day <= 31; day++) {
+      const row = day <= daysInMonth ? byDay[day] : null;
+      const weekend = day <= daysInMonth && isWeekend(day);
+      const col = weekend ? "color:#cc0000;" : "";
+      const dl = day <= daysInMonth ? String(day) : "";
+      const a1 = row ? hhmm(row.check_in) : "";
+      const a2 = row ? hhmm(row.break_out) : "";
+      const p1 = row ? hhmm(row.break_in) : "";
+      const p2 = row ? hhmm(row.check_out) : "";
+      rows31 += `<tr>
+        ${cell(dl, col)}
+        ${cell(a1)}
+        ${cell(a2)}
+        ${cell(p1)}
+        ${cell(p2)}
+      </tr>`;
+    }
+
+    const makeCopy = () => `
+<table style="width:100%;border-collapse:collapse;table-layout:fixed;font-family:Arial,sans-serif;">
+  <colgroup>
+    <col style="width:13%;"/>
+    <col style="width:21.75%;"/>
+    <col style="width:21.75%;"/>
+    <col style="width:21.75%;"/>
+    <col style="width:21.75%;"/>
+  </colgroup>
+
+  <!-- Title -->
+  <tr>
+    <td colspan="5" style="
+      border-top:2.5pt double #000;
+      border-bottom:2.5pt double #000;
+      border-left:none;border-right:none;
+      text-align:center;
+      font-size:13pt;
+      font-weight:bold;
+      letter-spacing:1.5pt;
+      padding:4px 0;
+      font-family:Arial,sans-serif;
+    ">DAILY TIME RECORD</td>
+  </tr>
+
+  <!-- Name -->
+  <tr>
+    <td colspan="5" style="
+      text-align:center;
+      font-size:10pt;
+      font-weight:bold;
+      border-bottom:1px solid #000;
+      border-top:none;border-left:none;border-right:none;
+      padding:3px 0 1px;
+      font-family:Arial,sans-serif;
+    ">${fullName}</td>
+  </tr>
+
+  <!-- Month line -->
+  <tr>
+    <td colspan="5" style="
+      font-size:8pt;
+      border:none;
+      padding:3px 0 4px;
+      font-family:Arial,sans-serif;
+    ">For the month of: &nbsp;<strong>${monthLabel}</strong></td>
+  </tr>
+
+  <!-- AM / PM header row -->
+  <tr>
+    <td rowspan="2" style="
+      border:1px solid #000;
+      font-size:7.5pt;
+      font-weight:bold;
+      text-align:center;
+      vertical-align:middle;
+      padding:2px;
+    ">Day</td>
+    <td colspan="2" style="
+      border:1px solid #000;
+      font-size:7.5pt;
+      font-weight:bold;
+      text-align:center;
+      vertical-align:middle;
+      padding:2px;
+    ">AM</td>
+    <td colspan="2" style="
+      border:1px solid #000;
+      font-size:7.5pt;
+      font-weight:bold;
+      text-align:center;
+      vertical-align:middle;
+      padding:2px;
+    ">PM</td>
+  </tr>
+
+  <!-- Time In / Time Out sub-header -->
+  <tr>
+    ${hdrCell("Time In")}
+    ${hdrCell("Time Out")}
+    ${hdrCell("Time In")}
+    ${hdrCell("Time Out")}
+  </tr>
+
+  <!-- 31 day rows -->
+  ${rows31}
+
+  <!-- Certification text -->
+  <tr>
+    <td colspan="5" style="
+      font-size:6.5pt;
+      text-align:center;
+      vertical-align:middle;
+      border:none;
+      padding:10px 4px 4px;
+      line-height:1.8;
+      font-family:Arial,sans-serif;
+    ">
+      I CERTIFY on my honor that above is a true and correct<br/>
+      report of the hours of work performed, record of which was made<br/>
+      daily at the time of arrival at and departure from office.
+    </td>
+  </tr>
+
+  <!-- Trainee signature line -->
+  <tr>
+    <td colspan="5" style="border:none;padding:20px 0 0;text-align:center;">
+      <table style="width:80%;margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td style="border-top:1px solid #000;text-align:center;font-size:9.5pt;font-weight:bold;padding:4px 0 2px;font-family:Arial,sans-serif;">
+            ${fullName}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Verified line -->
+  <tr>
+    <td colspan="5" style="
+      border:none;
+      font-size:7.5pt;
+      padding:6px 0 16px;
+      text-align:center;
+      font-family:Arial,sans-serif;
+    ">Verified as to the prescribed office hours.</td>
+  </tr>
+
+  <!-- Supervisor name -->
+  <tr>
+    <td colspan="5" style="
+      border:none;
+      text-align:center;
+      font-size:9.5pt;
+      font-weight:bold;
+      padding:2px 0 0;
+      font-family:Arial,sans-serif;
+    ">JOSE B. TUASON JR.</td>
+  </tr>
+
+  <!-- Supervisor signature line + title -->
+  <tr>
+    <td colspan="5" style="border:none;padding:0;text-align:center;">
+      <table style="width:80%;margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td style="border-top:2pt solid #000;text-align:center;font-size:8.5pt;font-weight:bold;padding:4px 0 2px;font-family:Arial,sans-serif;">
+            CHIEF ADMINISTRATIVE OFFICER
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`;
+
+    const wordHtml = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8"/>
+  <title>DTR – ${monthLabel}</title>
+  <!--[if gte mso 9]><xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+      <w:DoNotOptimizeForBrowser/>
+    </w:WordDocument>
+  </xml><![endif]-->
+  <style>
+    @page {
+      size: 21cm 29.7cm;
+      margin: 10mm 8mm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 9pt;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+    table { border-collapse: collapse; }
+  </style>
+</head>
+<body>
+  <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
+    <colgroup>
+      <col style="width:42%;"/>
+      <col style="width:16%;"/>
+      <col style="width:42%;"/>
+    </colgroup>
+    <tr>
+      <td style="vertical-align:top;padding:0 4px 0 0;">${makeCopy()}</td>
+      <td style="border-left:1px dashed #bbb;padding:0;"></td>
+      <td style="vertical-align:top;padding:0 0 0 4px;">${makeCopy()}</td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const blob = new Blob(["\ufeff", wordHtml], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `DTR-${MONTHS[targetMonth]}-${targetYear}.doc`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -769,10 +810,16 @@ function DashboardPage() {
                     Export CSV
                   </button>
                   <button
-                    onClick={() => setShowPrint(true)}
+                    onClick={printDtr}
                     className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
                   >
                     Print DTR
+                  </button>
+                  <button
+                    onClick={downloadWordDtr}
+                    className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Download Word
                   </button>
                 </div>
               </div>
@@ -832,15 +879,6 @@ function DashboardPage() {
           </>
         )}
       </main>
-
-      {/* Civil Service Form No. 48 print modal */}
-      {showPrint && (
-        <DtrPrintView
-          rows={rows}
-          profile={profile}
-          onClose={() => setShowPrint(false)}
-        />
-      )}
     </div>
   );
 }
