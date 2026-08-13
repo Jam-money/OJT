@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -46,6 +46,17 @@ const MONTHS = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December",
 ];
+
+// ── Attendance schedule config ──────────────────────────────────────────────
+// 8:00 AM – 11:59 AM = morning work window.
+// At exactly 12:00 PM, Break Out AND Break In are both auto-logged (lunch is
+// treated as instantaneous for record-keeping — the trainee doesn't need to
+// tap anything).
+// At exactly 5:00 PM (17:00), Check Out is auto-logged.
+const LUNCH_HOUR = 12; // 12:00 PM → auto break_out + break_in
+const CHECKOUT_HOUR = 17; // 5:00 PM → auto check_out
+const CHECK_IN_START_HOUR = 8; // 8:00 AM
+const CHECK_IN_END_HOUR = 12; // Check In allowed until 11:59 AM (exclusive of 12:00)
 
 function todayKey() {
   const d = new Date();
@@ -106,6 +117,14 @@ function DashboardPage() {
   const [now, setNow] = useState(new Date());
   const [loading, setLoading] = useState(true);
 
+  // Month/year the user wants to download the DTR for.
+  const [downloadMonth, setDownloadMonth] = useState<number>(new Date().getMonth());
+  const [downloadYear, setDownloadYear] = useState<number>(new Date().getFullYear());
+
+  // Guards so the auto lunch/checkout only fire once per day, not every tick.
+  const autoLunchFired = useRef<string | null>(null);
+  const autoCheckoutFired = useRef<string | null>(null);
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
@@ -151,12 +170,35 @@ function DashboardPage() {
   );
 
   const nextPunch: Punch | null = useMemo(() => {
-    for (const p of ORDER) if (!today[p]) return p;
+    // Normal case: check_in hasn't happened yet and we're still inside the
+    // 8:00–11:59 AM window → Check In is next.
+    if (!today.check_in && now.getHours() < CHECK_IN_END_HOUR) {
+      return "check_in";
+    }
+    // Missed Check In: the window closed (it's already 12 PM or later) and
+    // the trainee never checked in. Don't stay stuck — move straight to
+    // Break Out so the day can still be recorded from here on.
+    for (const p of ORDER) {
+      if (p === "check_in") continue;
+      if (!today[p]) return p;
+    }
     return null;
-  }, [today]);
+  }, [today, now]);
 
   const punch = async (p: Punch) => {
     if (!userId) return;
+
+    // Check In is only allowed between 8:00 AM and 11:59 AM.
+    if (p === "check_in") {
+      const h = new Date().getHours();
+      if (h < CHECK_IN_START_HOUR || h >= CHECK_IN_END_HOUR) {
+        window.alert(
+          `Check In is only allowed between ${CHECK_IN_START_HOUR}:00 AM and 11:59 AM.`,
+        );
+        return;
+      }
+    }
+
     const nowIso = new Date().toISOString();
     const updated: DtrRow = { ...today, [p]: nowIso, user_id: userId };
     setRows((prev) => {
@@ -183,6 +225,92 @@ function DashboardPage() {
       });
     }
   };
+
+  // Updates one or more DTR columns for today in a single request (used for
+  // the 12:00 PM auto lunch, which sets break_out and break_in together).
+  const punchFields = async (fields: Partial<Record<Punch, string>>) => {
+    if (!userId) return;
+    const updated: DtrRow = { ...today, ...fields, user_id: userId };
+    setRows((prev) => {
+      const other = prev.filter((r) => r.entry_date !== key);
+      return [updated, ...other];
+    });
+    const { data, error } = await supabase
+      .from("dtr_entries")
+      .upsert(
+        {
+          user_id: userId,
+          entry_date: key,
+          ...fields,
+          ...(today.id ? { id: today.id } : {}),
+        },
+        { onConflict: "user_id,entry_date" },
+      )
+      .select()
+      .single();
+    if (!error && data) {
+      setRows((prev) => {
+        const other = prev.filter((r) => r.entry_date !== key);
+        return [data as DtrRow, ...other];
+      });
+    }
+  };
+
+  // ── Auto attendance schedule ────────────────────────────────────────────
+  // 12:00 PM  → auto-log Break Out AND Break In together (lunch).
+  // 5:00 PM   → auto-log Check Out.
+  // These are "catch-up" triggers: they fire the moment the dashboard is
+  // open on/after the threshold time (not only in the exact 12:00:00 minute),
+  // so a trainee opening the app at, say, 2:00 PM still gets their lunch
+  // auto-logged immediately instead of being stuck waiting for a minute
+  // that already passed.
+  useEffect(() => {
+    if (!userId || loading) return;
+
+    const hour = now.getHours();
+
+    // Auto lunch (Break Out + Break In): as soon as it's 12:00 PM or later,
+    // if the trainee checked in and lunch hasn't been logged yet today.
+    if (
+      hour >= LUNCH_HOUR &&
+      today.check_in &&
+      !today.break_out &&
+      !today.break_in &&
+      autoLunchFired.current !== key
+    ) {
+      autoLunchFired.current = key;
+      const lunchIso = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        LUNCH_HOUR,
+        0,
+        0,
+      ).toISOString();
+      punchFields({ break_out: lunchIso, break_in: lunchIso });
+    }
+
+    // Auto Check Out: as soon as it's 5:00 PM or later, if the trainee
+    // checked in today and hasn't checked out yet.
+    if (
+      hour >= CHECKOUT_HOUR &&
+      today.check_in &&
+      !today.check_out &&
+      autoCheckoutFired.current !== key
+    ) {
+      autoCheckoutFired.current = key;
+      const checkoutIso = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        CHECKOUT_HOUR,
+        0,
+        0,
+      ).toISOString();
+      punchFields({ check_out: checkoutIso });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [now, userId, loading, today.check_in, today.break_out, today.break_in, today.check_out, key]);
 
   const undoLast = async () => {
     if (!userId || !today.id) return;
@@ -240,10 +368,10 @@ function DashboardPage() {
   };
 
   // ── DTR HTML builder (shared by print & download) ──────────────────────────
+  // Now uses the user-selected month/year instead of always "this month".
   const buildDtrHtml = () => {
-    const target = new Date();
-    const targetMonth = target.getMonth();
-    const targetYear = target.getFullYear();
+    const targetMonth = downloadMonth;
+    const targetYear = downloadYear;
 
     const byDay: Record<number, DtrRow> = {};
     for (const r of rows) {
@@ -379,9 +507,8 @@ function DashboardPage() {
   };
 
   const downloadWordDtr = () => {
-    const target = new Date();
-    const targetMonth = target.getMonth();
-    const targetYear = target.getFullYear();
+    const targetMonth = downloadMonth;
+    const targetYear = downloadYear;
     const monthLabel = `${MONTHS[targetMonth]} ${targetYear}`;
     const fullName = profile.full_name || "";
 
@@ -637,6 +764,18 @@ function DashboardPage() {
     [rows],
   );
 
+  // Build a list of years available for selection, based on existing rows
+  // (plus the current year), so the dropdown always has something sensible.
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    years.add(new Date().getFullYear());
+    for (const r of rows) {
+      const y = new Date(r.entry_date + "T00:00:00").getFullYear();
+      years.add(y);
+    }
+    return Array.from(years).sort((a, b) => b - a);
+  }, [rows]);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -775,7 +914,12 @@ function DashboardPage() {
                 {nextPunch ? (
                   <button
                     onClick={() => punch(nextPunch)}
-                    className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+                    disabled={
+                      nextPunch === "check_in" &&
+                      (now.getHours() < CHECK_IN_START_HOUR ||
+                        now.getHours() >= CHECK_IN_END_HOUR)
+                    }
+                    className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {LABELS[nextPunch]} now
                   </button>
@@ -785,14 +929,20 @@ function DashboardPage() {
                   </div>
                 )}
                 <span className="text-xs text-slate-500">
-                  Saved securely to your account.
+                  {nextPunch === "check_in" &&
+                  (now.getHours() < CHECK_IN_START_HOUR ||
+                    now.getHours() >= CHECK_IN_END_HOUR)
+                    ? `Check In is only available from ${CHECK_IN_START_HOUR}:00 AM to 11:59 AM.`
+                    : `Break Out & Break In auto-log at 12:00 PM, and Check Out auto-logs at ${
+                        CHECKOUT_HOUR - 12
+                      }:00 PM.`}
                 </span>
               </div>
             </section>
 
             {/* DTR table */}
             <section className="rounded-xl border border-slate-200 bg-white">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">
                     Daily Time Record
@@ -802,7 +952,32 @@ function DashboardPage() {
                     day{rows.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Month/year picker for downloads */}
+                  <select
+                    value={downloadMonth}
+                    onChange={(e) => setDownloadMonth(Number(e.target.value))}
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
+                    aria-label="Select month to download"
+                  >
+                    {MONTHS.map((m, i) => (
+                      <option key={m} value={i}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={downloadYear}
+                    onChange={(e) => setDownloadYear(Number(e.target.value))}
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
+                    aria-label="Select year to download"
+                  >
+                    {availableYears.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={exportCsv}
                     className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"

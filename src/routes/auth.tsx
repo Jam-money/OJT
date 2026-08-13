@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import psaImage from "../../assets/psa.jpg";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -71,111 +72,126 @@ function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          <Link to="/" className="text-xs font-medium uppercase tracking-widest text-slate-500">
-            OJT DTR
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-            {mode === "signin" ? "Sign in to your DTR" : "Create your trainee account"}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {mode === "signin"
-              ? "Track your daily time record securely."
-              : "Start logging your OJT attendance in seconds."}
-          </p>
-        </div>
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Left: PSA image panel (hidden on small screens) */}
+      <div className="relative hidden w-1/2 items-center justify-center bg-slate-900 lg:flex">
+        <img
+          src={psaImage}
+          alt="PSA"
+          className="h-full w-full object-cover"
+        />
+      </div>
 
-        <form
-          onSubmit={submit}
-          className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
-          {mode === "signup" && (
-            <Field label="Full name">
+      {/* Right: Sign in / Sign up form */}
+      <div className="flex w-full items-center justify-center px-4 py-12 lg:w-1/2">
+        <div className="w-full max-w-md">
+          <div className="mb-6 text-center">
+            <Link
+              to="/"
+              className="text-xs font-medium uppercase tracking-widest text-slate-500"
+            >
+              OJT DTR
+            </Link>
+            <h1 className="mt-2 text-2xl font-semibold text-slate-900">
+              {mode === "signin" ? "Sign in to your DTR" : "Create your trainee account"}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {mode === "signin"
+                ? "Track your daily time record securely."
+                : "Start logging your OJT attendance in seconds."}
+            </p>
+          </div>
+
+          <form
+            onSubmit={submit}
+            className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+          >
+            {mode === "signup" && (
+              <Field label="Full name">
+                <input
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Juan Dela Cruz"
+                  className="input"
+                />
+              </Field>
+            )}
+            <Field label="Email">
               <input
+                type="email"
                 required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Juan Dela Cruz"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@school.edu"
                 className="input"
               />
             </Field>
-          )}
-          <Field label="Email">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@school.edu"
-              className="input"
-            />
-          </Field>
-          <Field label="Password">
-            <input
-              type="password"
-              required
-              minLength={6}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input"
-            />
-          </Field>
+            <Field label="Password">
+              <input
+                type="password"
+                required
+                minLength={6}
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input"
+              />
+            </Field>
 
-          {msg && (
-            <div
-              className={`rounded-md px-3 py-2 text-sm ${
-                msg.kind === "error"
-                  ? "bg-red-50 text-red-700"
-                  : "bg-emerald-50 text-emerald-700"
-              }`}
-            >
-              {msg.text}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
-          >
-            {loading
-              ? "Please wait…"
-              : mode === "signin"
-                ? "Sign in"
-                : "Create account"}
-          </button>
-
-          <div className="text-center text-sm text-slate-500">
-            {mode === "signin" ? (
-              <>
-                No account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signup")}
-                  className="font-medium text-slate-900 hover:underline"
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have one?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("signin")}
-                  className="font-medium text-slate-900 hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
+            {msg && (
+              <div
+                className={`rounded-md px-3 py-2 text-sm ${
+                  msg.kind === "error"
+                    ? "bg-red-50 text-red-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {msg.text}
+              </div>
             )}
-          </div>
-        </form>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {loading
+                ? "Please wait…"
+                : mode === "signin"
+                  ? "Sign in"
+                  : "Create account"}
+            </button>
+
+            <div className="text-center text-sm text-slate-500">
+              {mode === "signin" ? (
+                <>
+                  No account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className="font-medium text-slate-900 hover:underline"
+                  >
+                    Sign up
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have one?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signin")}
+                    className="font-medium text-slate-900 hover:underline"
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
 
       <style>{`
