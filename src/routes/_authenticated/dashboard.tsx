@@ -203,7 +203,7 @@ function buildDtrHtmlFor(fullName: string, rows: DtrRow[], targetMonth: number, 
     html, body { height: 100%; }
     body { font-family: Arial, sans-serif; font-size: 10px; color: #000; height: 100%; }
     .page { display: flex; flex-direction: row; width: 100%; min-height: 257mm; }
-    .copy { width: 50%; padding: 4mm 20mm; border-right: 1px dashed #bbb; display: flex; flex-direction: column; }
+    .copy { width: 50%; padding: 4mm 12mm; border-right: 1px dashed #bbb; display: flex; flex-direction: column; }
     .copy:last-child { border-right: none; }
     .title-wrap { border-top: 2.5px double #000; border-bottom: 2.5px double #000; padding: 3px 0; margin-bottom: 6px; }
     h1 { font-size: 15px; font-weight: 900; text-align: center; letter-spacing: 1.5px; }
@@ -461,14 +461,14 @@ ${rows31}
 <body>
 <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
   <colgroup>
-    <col style="width:45%;"/>
-    <col style="width:10%;"/>
-    <col style="width:45%;"/>
+    <col style="width:44%;"/>
+    <col style="width:12%;"/>
+    <col style="width:44%;"/>
   </colgroup>
   <tr>
-    <td style="vertical-align:top;padding:0 10px 0 0;">${makeCopy()}</td>
+    <td style="vertical-align:top;padding:0 8px 0 0;">${makeCopy()}</td>
     <td style="border-left:1px dashed #bbb;padding:0;"></td>
-    <td style="vertical-align:top;padding:0 0 0 10px;">${makeCopy()}</td>
+    <td style="vertical-align:top;padding:0 0 0 8px;">${makeCopy()}</td>
   </tr>
 </table>
 </body>
