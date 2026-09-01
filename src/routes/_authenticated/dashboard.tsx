@@ -203,7 +203,7 @@ function buildDtrHtmlFor(fullName: string, rows: DtrRow[], targetMonth: number, 
     html, body { height: 100%; }
     body { font-family: Arial, sans-serif; font-size: 10px; color: #000; height: 100%; }
     .page { display: flex; flex-direction: row; width: 100%; min-height: 257mm; }
-    .copy { width: 50%; padding: 4mm 10mm; border-right: 1px dashed #bbb; display: flex; flex-direction: column; }
+    .copy { width: 50%; padding: 4mm 20mm; border-right: 1px dashed #bbb; display: flex; flex-direction: column; }
     .copy:last-child { border-right: none; }
     .title-wrap { border-top: 2.5px double #000; border-bottom: 2.5px double #000; padding: 3px 0; margin-bottom: 6px; }
     h1 { font-size: 15px; font-weight: 900; text-align: center; letter-spacing: 1.5px; }
