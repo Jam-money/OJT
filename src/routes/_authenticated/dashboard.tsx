@@ -55,12 +55,6 @@ const MONTHS = [
   "July","August","September","October","November","December",
 ];
 
-// ── Attendance schedule config ──────────────────────────────────────────────
-// 8:00 AM – 11:59 AM = Check In window. All punches are now manual — the
-// trainee taps each button themselves; nothing is auto-logged.
-const CHECK_IN_START_HOUR = 8; // 8:00 AM
-const CHECK_IN_END_HOUR = 12; // Check In allowed until 11:59 AM (exclusive of 12:00)
-
 function todayKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -562,17 +556,6 @@ function DashboardPage() {
   const punch = async (p: Punch) => {
     if (!userId) return;
 
-    // Check In is only allowed between 8:00 AM and 11:59 AM.
-    if (p === "check_in") {
-      const h = new Date().getHours();
-      if (h < CHECK_IN_START_HOUR || h >= CHECK_IN_END_HOUR) {
-        window.alert(
-          `Check In is only allowed between ${CHECK_IN_START_HOUR}:00 AM and 11:59 AM.`,
-        );
-        return;
-      }
-    }
-
     const nowIso = new Date().toISOString();
     const updated: DtrRow = { ...today, [p]: nowIso, user_id: userId };
     setRows((prev) => {
@@ -837,11 +820,6 @@ function DashboardPage() {
                 {nextPunch ? (
                   <button
                     onClick={() => punch(nextPunch)}
-                    disabled={
-                      nextPunch === "check_in" &&
-                      (now.getHours() < CHECK_IN_START_HOUR ||
-                        now.getHours() >= CHECK_IN_END_HOUR)
-                    }
                     className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {LABELS[nextPunch]} now
@@ -852,11 +830,7 @@ function DashboardPage() {
                   </div>
                 )}
                 <span className="text-xs text-slate-500">
-                  {nextPunch === "check_in" &&
-                  (now.getHours() < CHECK_IN_START_HOUR ||
-                    now.getHours() >= CHECK_IN_END_HOUR)
-                    ? `Check In is only available from ${CHECK_IN_START_HOUR}:00 AM to 11:59 AM.`
-                    : "Tap each button yourself — Break Out, Break In, and Check Out are no longer logged automatically."}
+                  Tap each button yourself — Break Out, Break In, and Check Out are no longer logged automatically.
                 </span>
               </div>
             </section>
