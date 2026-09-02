@@ -678,9 +678,9 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
               OJT Attendance · {profile.is_admin ? "Admin" : "DTR"}
             </h1>
             <p className="text-xs text-slate-500">
@@ -692,9 +692,9 @@ function DashboardPage() {
               )}
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="font-mono text-2xl font-semibold text-slate-900">
+          <div className="flex items-center justify-between gap-4 sm:justify-end">
+            <div className="text-left sm:text-right">
+              <div className="font-mono text-xl font-semibold text-slate-900 sm:text-2xl">
                 {now.toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -712,7 +712,7 @@ function DashboardPage() {
             </div>
             <button
               onClick={signOut}
-              className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              className="shrink-0 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
             >
               Sign out
             </button>
@@ -720,7 +720,7 @@ function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-6 py-8">
+      <main className="mx-auto max-w-6xl space-y-4 px-3 py-5 sm:space-y-6 sm:px-6 sm:py-8">
         {loading ? (
           <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
             Loading…
@@ -730,7 +730,7 @@ function DashboardPage() {
         ) : (
           <>
             {/* Profile */}
-            <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-900">
                   Trainee details
@@ -777,27 +777,27 @@ function DashboardPage() {
             </section>
 
             {/* Punch card */}
-            <section className="rounded-xl border border-slate-200 bg-white p-6">
-              <div className="mb-5 flex items-center justify-between">
+            <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6">
+              <div className="mb-5 flex items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                   Today · {fmtDate(key)}
                 </h2>
                 <button
                   onClick={undoLast}
-                  className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="shrink-0 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Undo last
                 </button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {ORDER.map((p) => {
                   const done = Boolean(today[p]);
                   const isNext = nextPunch === p;
                   return (
                     <div
                       key={p}
-                      className={`rounded-lg border p-4 ${
+                      className={`rounded-lg border p-3 sm:p-4 ${
                         done
                           ? "border-emerald-200 bg-emerald-50"
                           : isNext
@@ -805,10 +805,10 @@ function DashboardPage() {
                             : "border-slate-200 bg-slate-50 opacity-70"
                       }`}
                     >
-                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500 sm:text-xs">
                         {LABELS[p]}
                       </div>
-                      <div className="mt-1 font-mono text-lg font-semibold text-slate-900">
+                      <div className="mt-1 font-mono text-base font-semibold text-slate-900 sm:text-lg">
                         {fmtTime(today[p])}
                       </div>
                     </div>
@@ -816,11 +816,11 @@ function DashboardPage() {
                 })}
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 {nextPunch ? (
                   <button
                     onClick={() => punch(nextPunch)}
-                    className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto sm:py-2.5"
                   >
                     {LABELS[nextPunch]} now
                   </button>
@@ -837,7 +837,7 @@ function DashboardPage() {
 
             {/* DTR table */}
             <section className="rounded-xl border border-slate-200 bg-white">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">
                     Daily Time Record
@@ -848,12 +848,12 @@ function DashboardPage() {
                     day{visibleRows.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
                   {/* Month/year picker — now filters the table too, not just downloads */}
                   <select
                     value={downloadMonth}
                     onChange={(e) => setDownloadMonth(Number(e.target.value))}
-                    className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
+                    className="col-span-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
                     aria-label="Select month to view/download"
                   >
                     {MONTHS.map((m, i) => (
@@ -865,7 +865,7 @@ function DashboardPage() {
                   <select
                     value={downloadYear}
                     onChange={(e) => setDownloadYear(Number(e.target.value))}
-                    className="rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
+                    className="col-span-1 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-slate-400"
                     aria-label="Select year to view/download"
                   >
                     {availableYears.map((y) => (
@@ -888,14 +888,57 @@ function DashboardPage() {
                   </button>
                   <button
                     onClick={downloadWordDtr}
-                    className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    className="col-span-2 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 sm:col-span-1"
                   >
                     Download Word
                   </button>
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile: card list */}
+              <div className="divide-y divide-slate-100 sm:hidden">
+                {visibleRows.length === 0 && (
+                  <p className="px-4 py-10 text-center text-sm text-slate-400">
+                    No records for {MONTHS[downloadMonth]} {downloadYear}.
+                  </p>
+                )}
+                {visibleRows.map((r) => {
+                  const h = computeHours(r);
+                  return (
+                    <div key={r.entry_date} className="px-4 py-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-sm font-medium text-slate-900">
+                          {fmtDate(r.entry_date)}
+                        </span>
+                        <span className="font-mono text-xs text-slate-500">
+                          {h ? `${h.toFixed(2)} hrs` : "—"}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
+                        <div>
+                          <span className="text-slate-400">Check In: </span>
+                          <span className="font-mono">{fmtTime(r.check_in)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Break Out: </span>
+                          <span className="font-mono">{fmtTime(r.break_out)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Break In: </span>
+                          <span className="font-mono">{fmtTime(r.break_in)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Check Out: </span>
+                          <span className="font-mono">{fmtTime(r.check_out)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop/tablet: table */}
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                     <tr>
@@ -1133,7 +1176,7 @@ function AdminDashboard() {
   };
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[300px_1fr]">
+    <section className="grid gap-4 sm:gap-6 lg:grid-cols-[300px_1fr]">
       {/* Trainee list */}
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
@@ -1158,7 +1201,7 @@ function AdminDashboard() {
         ) : filteredTrainees.length === 0 ? (
           <p className="text-xs text-slate-400">No trainees found.</p>
         ) : (
-          <ul className="max-h-[70vh] space-y-1 overflow-y-auto">
+          <ul className="max-h-[50vh] space-y-1 overflow-y-auto lg:max-h-[70vh]">
             {filteredTrainees.map((t) => (
               <li key={t.id}>
                 <button
@@ -1186,7 +1229,7 @@ function AdminDashboard() {
 
       {/* Selected trainee's DTR */}
       <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 sm:px-5">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">
               {selectedTrainee
@@ -1203,7 +1246,7 @@ function AdminDashboard() {
             )}
           </div>
           {selectedTrainee && entries.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
               <select
                 value={docMonth}
                 onChange={(e) => setDocMonth(Number(e.target.value))}
@@ -1242,7 +1285,7 @@ function AdminDashboard() {
               </button>
               <button
                 onClick={downloadSelectedWordDtr}
-                className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                className="col-span-2 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 sm:col-span-1"
               >
                 Download Word
               </button>
@@ -1272,57 +1315,101 @@ function AdminDashboard() {
             No records for {MONTHS[docMonth]} {docYear}.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Date</th>
-                  <th className="px-5 py-3 font-medium">Check In</th>
-                  <th className="px-5 py-3 font-medium">Break Out</th>
-                  <th className="px-5 py-3 font-medium">Break In</th>
-                  <th className="px-5 py-3 font-medium">Check Out</th>
-                  <th className="px-5 py-3 text-right font-medium">Hours</th>
-                  <th className="px-5 py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {visibleEntries.map((r) => (
-                  <tr key={r.id} className="text-slate-700">
-                    <td className="px-5 py-3 font-medium text-slate-900">
+          <>
+            {/* Mobile: card list */}
+            <div className="divide-y divide-slate-100 sm:hidden">
+              {visibleEntries.map((r) => (
+                <div key={r.id} className="px-4 py-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-sm font-medium text-slate-900">
                       {fmtDate(r.entry_date)}
-                    </td>
-                    {ORDER.map((p) => (
-                      <td key={p} className="px-5 py-3 font-mono">
-                        <div className="flex items-center gap-2">
-                          <span>{fmtTime(r[p] as string | null)}</span>
-                          {r[p] && (
-                            <button
-                              onClick={() => clearPunch(r.id!, p)}
-                              title={`Clear ${LABELS[p]}`}
-                              className="text-[10px] font-medium text-slate-400 hover:text-red-600"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    ))}
-                    <td className="px-5 py-3 text-right font-mono">
-                      {computeHours(r).toFixed(2)}
-                    </td>
-                    <td className="px-5 py-3 text-right">
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-slate-500">
+                        {computeHours(r).toFixed(2)} hrs
+                      </span>
                       <button
                         onClick={() => deleteEntry(r.id!)}
                         className="text-xs font-medium text-red-600 hover:underline"
                       >
                         Delete
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-600">
+                    {ORDER.map((p) => (
+                      <div key={p} className="flex items-center gap-1.5">
+                        <span className="text-slate-400">{LABELS[p]}: </span>
+                        <span className="font-mono">{fmtTime(r[p] as string | null)}</span>
+                        {r[p] && (
+                          <button
+                            onClick={() => clearPunch(r.id!, p)}
+                            title={`Clear ${LABELS[p]}`}
+                            className="text-[10px] font-medium text-slate-400 hover:text-red-600"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop/tablet: table */}
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium">Check In</th>
+                    <th className="px-5 py-3 font-medium">Break Out</th>
+                    <th className="px-5 py-3 font-medium">Break In</th>
+                    <th className="px-5 py-3 font-medium">Check Out</th>
+                    <th className="px-5 py-3 text-right font-medium">Hours</th>
+                    <th className="px-5 py-3 text-right font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleEntries.map((r) => (
+                    <tr key={r.id} className="text-slate-700">
+                      <td className="px-5 py-3 font-medium text-slate-900">
+                        {fmtDate(r.entry_date)}
+                      </td>
+                      {ORDER.map((p) => (
+                        <td key={p} className="px-5 py-3 font-mono">
+                          <div className="flex items-center gap-2">
+                            <span>{fmtTime(r[p] as string | null)}</span>
+                            {r[p] && (
+                              <button
+                                onClick={() => clearPunch(r.id!, p)}
+                                title={`Clear ${LABELS[p]}`}
+                                className="text-[10px] font-medium text-slate-400 hover:text-red-600"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      ))}
+                      <td className="px-5 py-3 text-right font-mono">
+                        {computeHours(r).toFixed(2)}
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => deleteEntry(r.id!)}
+                          className="text-xs font-medium text-red-600 hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </section>
