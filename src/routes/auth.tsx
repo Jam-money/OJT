@@ -18,16 +18,22 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<{ kind: "error" | "info"; text: string } | null>(
-    null,
-  );
+  const [msg, setMsg] = useState<{ kind: "error" | "info"; text: string } | null>(null);
 
   useEffect(() => {
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const query = new URLSearchParams(window.location.search);
+    if (hash.get("type") === "recovery" || query.has("code")) {
+      window.location.replace(
+        `${window.location.origin}/reset-password${window.location.search}${window.location.hash}`,
+      );
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
     });
@@ -38,7 +44,16 @@ function AuthPage() {
     setLoading(true);
     setMsg(null);
     try {
-      if (mode === "signup") {
+      if (mode === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setMsg({
+          kind: "info",
+          text: "If this email has an account, a password reset link will arrive shortly. Check your inbox and spam folder.",
+        });
+      } else if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -75,30 +90,29 @@ function AuthPage() {
     <div className="flex min-h-screen bg-slate-50">
       {/* Left: PSA image panel (hidden on small screens) */}
       <div className="relative hidden w-1/2 items-center justify-center bg-slate-900 lg:flex">
-        <img
-          src={psaImage}
-          alt="PSA"
-          className="h-full w-full object-cover"
-        />
+        <img src={psaImage} alt="PSA" className="h-full w-full object-cover" />
       </div>
 
       {/* Right: Sign in / Sign up form */}
       <div className="flex w-full items-center justify-center px-4 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="mb-6 text-center">
-            <Link
-              to="/"
-              className="text-xs font-medium uppercase tracking-widest text-slate-500"
-            >
+            <Link to="/" className="text-xs font-medium uppercase tracking-widest text-slate-500">
               OJT DTR
             </Link>
             <h1 className="mt-2 text-2xl font-semibold text-slate-900">
-              {mode === "signin" ? "Sign in to your DTR" : "Create your trainee account"}
+              {mode === "signin"
+                ? "Sign in to your DTR"
+                : mode === "forgot"
+                  ? "Reset your password"
+                  : "Create your trainee account"}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
               {mode === "signin"
                 ? "Track your daily time record securely."
-                : "Start logging your OJT attendance in seconds."}
+                : mode === "forgot"
+                  ? "Enter your account email to receive a reset link."
+                  : "Start logging your OJT attendance in seconds."}
             </p>
           </div>
 
@@ -128,25 +142,37 @@ function AuthPage() {
                 className="input"
               />
             </Field>
-            <Field label="Password">
-              <input
-                type="password"
-                required
-                minLength={6}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="input"
-              />
-            </Field>
+            {mode !== "forgot" && (
+              <Field label="Password">
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="input"
+                />
+              </Field>
+            )}
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("forgot");
+                  setMsg(null);
+                }}
+                className="text-sm font-medium text-slate-700 hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
 
             {msg && (
               <div
                 className={`rounded-md px-3 py-2 text-sm ${
-                  msg.kind === "error"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-emerald-50 text-emerald-700"
+                  msg.kind === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
                 }`}
               >
                 {msg.text}
@@ -162,11 +188,24 @@ function AuthPage() {
                 ? "Please wait…"
                 : mode === "signin"
                   ? "Sign in"
-                  : "Create account"}
+                  : mode === "forgot"
+                    ? "Send reset link"
+                    : "Create account"}
             </button>
 
             <div className="text-center text-sm text-slate-500">
-              {mode === "signin" ? (
+              {mode === "forgot" ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signin");
+                    setMsg(null);
+                  }}
+                  className="font-medium text-slate-900 hover:underline"
+                >
+                  Back to sign in
+                </button>
+              ) : mode === "signin" ? (
                 <>
                   No account?{" "}
                   <button
